@@ -1,6 +1,6 @@
 init_files/
-output/
-*~
+# output/ #commented to include output
+# *~ #commented
 build/
 class
 *.prof

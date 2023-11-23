@@ -313,6 +313,7 @@ int perturb_init(
       //If we have the ext_field_attr, test for tachyon instability in RD before pert initialisation
       // If have it, fail, because we can't set the ICs properly
 
+        //printf("Testing6\n"); //changed by me
         class_call_except(perturb_test_ini_extfld_ic_smg(ppr,
                                                          pba,
                                                          ppt),
@@ -320,6 +321,7 @@ int perturb_init(
                 ppt->error_message,
                 background_free(pba);thermodynamics_free(pth);perturb_free_nosource(ppt));
       }
+        //printf("Testing7\n"); //changed by me
     }
   }
 
@@ -338,6 +340,8 @@ int perturb_init(
                pth->z_rec);
 
   }
+  
+  
 
 
 
@@ -353,6 +357,7 @@ int perturb_init(
              background_free(pba);thermodynamics_free(pth);perturb_free_nosource(ppt));
 
   /** - if we want to store perturbations, write titles and allocate storage */
+  //printf("Testing9\n"); //changed by me
   class_call(perturb_prepare_output(pba,ppt),
              ppt->error_message,
              ppt->error_message);
@@ -519,6 +524,7 @@ int perturb_init(
 
   free(pppw);
 
+  //printf("Testing8\n"); //changed by me
   return _SUCCESS_;
 }
 
@@ -10690,8 +10696,9 @@ int perturb_test_ini_extfld_ic_smg(struct precision * ppr,
           ppt->error_message,
           free(pvecback),
           "\n   Cannot set initial conditions for smg: tachyonic instability dominates superhorizon attractor.\n");
-
+  //printf("Testing4\n"); //changed by me
   free(pvecback);
+  //printf("Testing5\n"); //changed by me
 
   // If we get here, then initialise modes and evolve them!
 

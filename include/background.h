@@ -20,7 +20,9 @@ enum gravity_model {propto_omega, propto_scale,
     galileon, nkgb,
     brans_dicke,
     quintessence_monomial, quintessence_tracker,
-    alpha_attractor_canonical
+    alpha_attractor_canonical,
+    propto_omega_n, //changed by me
+    propto_hubble_n, //changed by me
 }; //write here the different models
 
 // enum gravity_model_subclass {quint_exp, cccg_exp, cccg_pow}; //write here model subclasses
@@ -309,6 +311,9 @@ struct background
   int index_bg_lambda_11_prime_smg;
   int index_bg_cs2num_smg;
   int index_bg_cs2num_prime_smg;
+  
+  int index_bg_mu_smg; //changed by me
+  int index_bg_Sigma_smg; //changed by me
 
   int index_bg_rho_tot_wo_smg; /**< total density minus scalar field */
   int index_bg_p_tot_wo_smg; /**< total pressure minus scalar field */

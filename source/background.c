@@ -994,6 +994,9 @@ int background_indices(
   class_define_index(pba->index_bg_lambda_8_prime_smg,pba->has_smg,index_bg,1);
   class_define_index(pba->index_bg_lambda_9_prime_smg,pba->has_smg,index_bg,1);
   class_define_index(pba->index_bg_lambda_11_prime_smg,pba->has_smg,index_bg,1);
+  
+  class_define_index(pba->index_bg_mu_smg,pba->has_smg,index_bg,1); //changed by me
+  class_define_index(pba->index_bg_Sigma_smg,pba->has_smg,index_bg,1); //changed by me
 
   class_define_index(pba->index_bg_E0_smg,pba->has_smg && pba->field_evolution_smg,index_bg,1);
   class_define_index(pba->index_bg_E1_smg,pba->has_smg && pba->field_evolution_smg,index_bg,1);
@@ -2230,6 +2233,33 @@ int background_solve(
       class_test(memcopy_result != pba->background_table + i*pba->bg_size + pba->index_bg_cs2_smg,
               pba->error_message,
               "cannot copy data back to pba->background_table");
+      
+      double beta2 = bra*(1 + ten) + 2.*(run - ten); //changed by me, implementing mu and Sigma from equations of 2001.05469
+      double beta4 = bra*(ten - run) - 0.5*bra*bra*(1. + ten);
+      double beta1 = pvecback[pba->index_bg_cs2num_smg] - beta2 - beta4;
+      double beta3 = (1. + ten)*beta1 + (1. + run)*beta2;
+      
+      pvecback[pba->index_bg_mu_smg] = (2./M2)*(beta3/(2.*beta1 + beta2*(2. - bra)));
+      //printf("Testing\n"); //changed by me
+      
+            memcopy_result = memcpy(pba->background_table + i*pba->bg_size + pba->index_bg_mu_smg,
+            &pvecback[pba->index_bg_mu_smg],
+            1*sizeof(double));
+      class_test(memcopy_result != pba->background_table + i*pba->bg_size + pba->index_bg_mu_smg,
+              pba->error_message,
+              "cannot copy data back to pba->background_table");
+      
+      pvecback[pba->index_bg_Sigma_smg] = (1./M2)*(beta1 + beta2 + beta3)/(2.*beta1 + beta2*(2. - bra));
+      //printf("Testing2\n"); //changed by me
+      
+            memcopy_result = memcpy(pba->background_table + i*pba->bg_size + pba->index_bg_Sigma_smg,
+            &pvecback[pba->index_bg_Sigma_smg],
+            1*sizeof(double));
+      class_test(memcopy_result != pba->background_table + i*pba->bg_size + pba->index_bg_Sigma_smg,
+              pba->error_message,
+              "cannot copy data back to pba->background_table");
+            
+      //printf("Testing3\n"); //changed by me
 
 
       /* Here we update the minimum values of the stability quantities
@@ -2275,7 +2305,7 @@ int background_solve(
     class_test_except(pba->min_D_smg <= -fabs(pba->D_safe_smg),
         pba->error_message,
         free(pvecback_derivs);free(pvecback);free(pvecback_integration);background_free(pba),
-        "Ghost instability for scalar field perturbations with minimum D=%g \n",pba->min_D_smg);
+        "Ghost instability for scalar field perturbations with minimum D=%g < %g \n",pba->min_D_smg, -fabs(pba->D_safe_smg));
     class_test_except(pba->min_cs2_smg < -fabs(pba->cs2_safe_smg),
         pba->error_message,
         free(pvecback_derivs);free(pvecback);free(pvecback_integration);background_free(pba),
@@ -2746,6 +2776,14 @@ int background_initial_conditions(
       case propto_omega:
 	pvecback_integration[pba->index_bi_delta_M_pl_smg] = pba->parameters_2_smg[4]-1.;
 	break;
+	
+	  case propto_omega_n: //changed by me
+	pvecback_integration[pba->index_bi_delta_M_pl_smg] = pba->parameters_2_smg[4]-1.;
+	break;
+	
+	  case propto_hubble_n: //changed by me
+	pvecback_integration[pba->index_bi_delta_M_pl_smg] = pba->parameters_2_smg[4]-1.;
+	break;
 
       case propto_scale:
 	pvecback_integration[pba->index_bi_delta_M_pl_smg] = pba->parameters_2_smg[4]-1.;
@@ -3026,6 +3064,7 @@ int background_output_titles(struct background * pba,
     class_store_columntitle(titles,"Mpl_running_smg",pba->has_smg);
     class_store_columntitle(titles,"c_s^2",pba->has_smg);
     class_store_columntitle(titles,"kin (D)",pba->has_smg);
+    class_store_columntitle(titles,"practice_braidingplusone_smg", pba->has_smg); //changed by me
   }
 
   if (pba->output_background_smg >= 2){
@@ -3059,6 +3098,8 @@ int background_output_titles(struct background * pba,
     class_store_columntitle(titles,"lambda_11_p",pba->has_smg);
     class_store_columntitle(titles,"cs2num",pba->has_smg);
     class_store_columntitle(titles,"cs2num_p",pba->has_smg);
+    class_store_columntitle(titles, "mu_smg", pba->has_smg);
+    class_store_columntitle(titles, "Sigma_smg", pba->has_smg);
   }
 
 
@@ -3118,6 +3159,7 @@ int background_output_data(
       class_store_double(dataptr,pvecback[pba->index_bg_mpl_running_smg],pba->has_smg,storeidx);
       class_store_double(dataptr,pvecback[pba->index_bg_cs2_smg],pba->has_smg,storeidx);
       class_store_double(dataptr,pvecback[pba->index_bg_kinetic_D_smg],pba->has_smg,storeidx);
+      class_store_double(dataptr,pvecback[pba->index_bg_braiding_smg]+1.,pba->has_smg,storeidx); //changed by me
     }
 
     if (pba->output_background_smg >= 2){
@@ -3150,6 +3192,8 @@ int background_output_data(
       class_store_double(dataptr,pvecback[pba->index_bg_lambda_11_prime_smg],pba->has_smg,storeidx);
       class_store_double(dataptr,pvecback[pba->index_bg_cs2num_smg],pba->has_smg,storeidx);
       class_store_double(dataptr,pvecback[pba->index_bg_cs2num_prime_smg],pba->has_smg,storeidx);
+      class_store_double(dataptr,pvecback[pba->index_bg_mu_smg],pba->has_smg,storeidx);
+      class_store_double(dataptr,pvecback[pba->index_bg_Sigma_smg],pba->has_smg,storeidx);
     }
 
   }
@@ -3579,6 +3623,7 @@ int background_gravity_functions(
     double a, delta_M_pl;
     double rho_tot, p_tot;
     double Omega_smg;
+    double H, H0; //changed by me
 
     a = pvecback_B[pba->index_bi_a];
     delta_M_pl = pvecback_B[pba->index_bi_delta_M_pl_smg];
@@ -3666,6 +3711,9 @@ int background_gravity_functions(
 
 
     Omega_smg = pvecback[pba->index_bg_rho_smg]/rho_tot; //used for some parameterizations
+    if (pba->hubble_evolution == _TRUE_)
+      H = pvecback_B[pba->index_bi_H]; //changed by me
+    H0 = pba->H0; //changed by me
 
 
     if (pba->gravity_model_smg == propto_omega) {
@@ -3679,6 +3727,39 @@ int background_gravity_functions(
       pvecback[pba->index_bg_braiding_smg] = c_b*Omega_smg;
       pvecback[pba->index_bg_tensor_excess_smg] = c_t*Omega_smg;
       pvecback[pba->index_bg_mpl_running_smg] = c_m*Omega_smg;
+      pvecback[pba->index_bg_delta_M2_smg] = delta_M_pl; //M2-1
+      pvecback[pba->index_bg_M2_smg] = 1.+delta_M_pl;
+    }
+    else if (pba->gravity_model_smg == propto_omega_n) { //changed by me
+
+      double c_k = pba->parameters_2_smg[0];
+      double c_b = pba->parameters_2_smg[1];
+      double c_m = pba->parameters_2_smg[2];
+      double c_t = pba->parameters_2_smg[3];
+      double n = pba->parameters_2_smg[5]; //changed by me
+
+      pvecback[pba->index_bg_kineticity_smg] = c_k*pow(Omega_smg, n);
+      pvecback[pba->index_bg_braiding_smg] = c_b*pow(Omega_smg, n);
+      pvecback[pba->index_bg_tensor_excess_smg] = c_t*pow(Omega_smg, n);
+      pvecback[pba->index_bg_mpl_running_smg] = c_m*pow(Omega_smg, n);
+      pvecback[pba->index_bg_delta_M2_smg] = delta_M_pl; //M2-1
+      pvecback[pba->index_bg_M2_smg] = 1.+delta_M_pl;
+    }
+    else if (pba->gravity_model_smg == propto_hubble_n) { //changed by me
+
+      double c_k = pba->parameters_2_smg[0];
+      double c_b = pba->parameters_2_smg[1];
+      double c_m = pba->parameters_2_smg[2];
+      double c_t = pba->parameters_2_smg[3];
+      double m_k = pba->parameters_2_smg[5]; //changed by me
+      double m_b = pba->parameters_2_smg[6];
+      double m_m = pba->parameters_2_smg[7];
+      double m_t = pba->parameters_2_smg[8];
+
+      pvecback[pba->index_bg_kineticity_smg] = c_k*pow(H0/H, 4/m_k);
+      pvecback[pba->index_bg_braiding_smg] = c_b*pow(H0/H, 4/m_b);
+      pvecback[pba->index_bg_tensor_excess_smg] = c_t*pow(H0/H, 4/m_t);
+      pvecback[pba->index_bg_mpl_running_smg] = c_m*pow(H0/H, 4/m_m);
       pvecback[pba->index_bg_delta_M2_smg] = delta_M_pl; //M2-1
       pvecback[pba->index_bg_M2_smg] = 1.+delta_M_pl;
     }
@@ -3902,6 +3983,20 @@ int background_gravity_parameters(
      printf(" -> c_K = %g, c_B = %g, c_M = %g, c_T = %g, M_*^2_init = %g \n",
 	    pba->parameters_2_smg[0],pba->parameters_2_smg[1],pba->parameters_2_smg[2],pba->parameters_2_smg[3],
 	    pba->parameters_2_smg[4]);
+     break;
+     
+   case propto_omega_n: //changed by me
+     printf("Modified gravity: propto_omega_n with parameters: \n");
+     printf(" -> c_K = %g, c_B = %g, c_M = %g, c_T = %g, M_*^2_init = %g, n = %g \n",
+	    pba->parameters_2_smg[0],pba->parameters_2_smg[1],pba->parameters_2_smg[2],pba->parameters_2_smg[3],
+	    pba->parameters_2_smg[4], pba->parameters_2_smg[5]);
+     break;
+     
+   case propto_hubble_n: //changed by me
+     printf("Modified gravity: propto_hubble_n with parameters: \n");
+     printf(" -> c_K = %g, c_B = %g, c_M = %g, c_T = %g, M_*^2_init = %g, m_K = %g, m_B = %g, m_M = %g, m_T = %g \n",
+	    pba->parameters_2_smg[0],pba->parameters_2_smg[1],pba->parameters_2_smg[2],pba->parameters_2_smg[3],
+	    pba->parameters_2_smg[4], pba->parameters_2_smg[5], pba->parameters_2_smg[6], pba->parameters_2_smg[7], pba->parameters_2_smg[8]);
      break;
 
    case propto_scale:

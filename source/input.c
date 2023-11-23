@@ -1234,6 +1234,27 @@ int input_read_parameters(
 	pba->parameters_2_size_smg = 5;
 	class_read_list_of_doubles("parameters_smg",pba->parameters_2_smg,pba->parameters_2_size_smg);
       }
+      
+      if (strcmp(string1,"propto_omega_n") == 0) { //changed by me
+	pba->gravity_model_smg = propto_omega_n;
+	pba->field_evolution_smg = _FALSE_;
+	pba->M_pl_evolution_smg = _TRUE_;
+	flag2=_TRUE_;
+	pba->parameters_2_size_smg = 6;
+	class_read_list_of_doubles("parameters_smg",pba->parameters_2_smg,pba->parameters_2_size_smg);
+	
+	double n = pba->parameters_2_smg[5];
+	class_test((n < 0), errmsg, "n must be >= 0. If n < 0, the alphas diverge at early times." ); //is declaring n here using up more memory?
+      }
+      
+      if (strcmp(string1,"propto_hubble_n") == 0) { //changed by me
+	pba->gravity_model_smg = propto_hubble_n;
+	pba->field_evolution_smg = _FALSE_;
+	pba->M_pl_evolution_smg = _TRUE_;
+	flag2=_TRUE_;
+	pba->parameters_2_size_smg = 9; //changed by me, four proportionality coefficients c_i, M_pl**2, and 4 exponents.
+	class_read_list_of_doubles("parameters_smg",pba->parameters_2_smg,pba->parameters_2_size_smg);
+      }
 
       if (strcmp(string1,"propto_scale") == 0) {
 	pba->gravity_model_smg = propto_scale;
@@ -1631,7 +1652,7 @@ if (strcmp(string1,"nkgb") == 0 || strcmp(string1,"n-kgb") == 0 || strcmp(string
 
       class_test(flag2==_FALSE_,
 		 errmsg,
-		 "could not identify gravity_theory value, check that it is one of 'propto_omega', 'propto_scale', 'constant_alphas', 'eft_alphas_power_law', 'eft_gammas_power_law', 'eft_gammas_exponential', 'brans_dicke', 'galileon', 'nKGB', 'quintessence_monomial', 'quintessence_tracker', 'alpha_attractor_canonical' ...");
+		 "could not identify gravity_theory value, check that it is one of 'propto_omega', 'propto_scale', 'constant_alphas', 'eft_alphas_power_law', 'eft_gammas_power_law', 'eft_gammas_exponential', 'brans_dicke', 'galileon', 'nKGB', 'quintessence_monomial', 'quintessence_tracker', 'alpha_attractor_canonical', 'propto_omega_n', 'propto_hubble_n' ..."); //changed by me, added propto_omega_n and propto_hubble
 
     }// end of loop over models
 
@@ -4822,6 +4843,7 @@ int input_get_guess(double *xguess,
          according to vanilla LambdaCDM. Should be good enough... */
       xguess[index_guess] = 2.43e-9/0.87659*pfzw->target_value[index_guess];
       dxdy[index_guess] = 2.43e-9/0.87659;
+      printf("A_s guess is %e.\n", xguess[index_guess]); //changed by me, testing
       break;
     }
     //printf("xguess = %g\n",xguess[index_guess]);

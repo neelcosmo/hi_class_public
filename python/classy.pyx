@@ -86,10 +86,10 @@ cdef class Class:
     cdef lensing le
     cdef file_content fc
 
-    cpdef int ready # Flag to see if classy can currently compute
-    cpdef int allocated # Flag to see if classy structs are allocated already
-    cpdef object _pars # Dictionary of the parameters
-    cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
+    cdef int ready # Flag to see if classy can currently compute #changed by me, changed all cpdef to cdef to comply with cython 3
+    cdef int allocated # Flag to see if classy structs are allocated already
+    cdef object _pars # Dictionary of the parameters
+    cdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
@@ -114,7 +114,7 @@ cdef class Class:
         self.set(**_pars)
 
     def __cinit__(self, default=False):
-        cpdef char* dumc
+        cdef char* dumc
         self.ready = False
         self.allocated = False
         self._pars = {}
@@ -894,7 +894,7 @@ cdef class Class:
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
-    def get_pk_and_k_and_z(self, nonlinear=True):
+    def get_pk_and_k_and_z(self, nonlinear=True): #explanation: never use nonlinear True, gives a segfault. For nonlinear False, I had to discard the largest tau due to a limit saturation due to floating point precision error.
         """
         Returns a grid of matter power spectrum values and the z and k
         at which it has been fully computed. Useful for creating interpolators.
@@ -904,9 +904,9 @@ cdef class Class:
         nonlinear : bool
                 Whether the returned power spectrum values are linear or non-linear (default)
         """
-        cdef np.ndarray[DTYPE_t,ndim=2] pk_at_k_z = np.zeros((self.sp.ln_k_size, self.sp.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] pk_at_k_z = np.zeros((self.sp.ln_k_size, self.sp.ln_tau_size-1),'float64') #changed by me, the maximum tau causes an error due to floating point precision
         cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.sp.ln_k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.sp.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.sp.ln_tau_size-1),'float64') #changed by me
         cdef int index_k, index_tau
         cdef double k0, kend, z0, zend, eps
 
@@ -916,17 +916,20 @@ cdef class Class:
         # Get k and z arrays
         for index_k in xrange(self.sp.ln_k_size):
             k[index_k] = np.exp(self.sp.ln_k[index_k])
-        for index_tau in xrange(self.sp.ln_tau_size):
+        for index_tau in xrange(self.sp.ln_tau_size-1): #changed by me
             z[index_tau] = self.z_of_tau(np.exp(self.sp.ln_tau[index_tau]))
+            #z[index_tau] = self.z_of_tau(self.sp.tau[index_tau]) #changed by me, doesn't work as sp doesn't have tau, only ln_tau
 
+        #z[self.sp.ln_tau_size-1] = self.z_of_tau(np.exp(self.sp.ln_tau[self.sp.ln_tau_size-1])*(1-eps)) #changed by me, floating point precision gives an error for the maximum tau otherwise
+        
         # Avoid saturating the limits
-        z[-1] *= (1-eps)
+        #z[-1] *= (1-eps) #changed by me
         z[0] *= (1+eps)
         if(z[0] < eps):
           z[0] = 0
 
         # Now copy P(k,z)
-        for index_tau in xrange(self.sp.ln_tau_size):
+        for index_tau in xrange(self.sp.ln_tau_size-1):
             for index_k in xrange(self.sp.ln_k_size):
                pk_at_k_z[index_k, index_tau] = pk_lin_or_nonlin(k[index_k], z[index_tau])
         return pk_at_k_z, k, z
@@ -1368,7 +1371,7 @@ cdef class Class:
             raise CosmoSevereError(self.pm.error_message)
 
         tmp = <bytes> titles
-        names = tmp.split("\t")[:-1]
+        names = tmp.split("\t".encode())[:-1] #changed by me. added the .encode()
         tmp = str(tmp.decode())
         number_of_titles = len(names)
         timesteps = self.pm.lnk_size
@@ -1381,9 +1384,9 @@ cdef class Class:
         primordial = {}
 
         for i in range(number_of_titles):
-            primordial[names[i]] = np.zeros(timesteps, dtype=np.double)
+            primordial[names[i].decode()] = np.zeros(timesteps, dtype=np.double) #changed by me, added the .decode()
             for index in range(timesteps):
-                primordial[names[i]][index] = data[index*number_of_titles+i]
+                primordial[names[i].decode()][index] = data[index*number_of_titles+i] #changed by me, added the .decode()
 
         free(titles)
         free(data)
@@ -1468,7 +1471,7 @@ cdef class Class:
         Return the density and/or velocity transfer functions for all initial
         conditions today. You must include 'dCl' and 'vCl' in the list of
         'output'. The transfer functions can also be computed at higher redshift z
-        provided that 'z_pk' has been set and that z is inside the region spanned by 'z_pk'.
+        provided that 'z_pk' has been set and that z is inside the region spanned by 'z_pk'. #explanation: t_... are velocity transfers, d_... are density transfers
 
         Parameters
         ----------
@@ -1739,7 +1742,7 @@ cdef class Class:
         try:
             index = int(name.split('_')[-1])
         except:
-            print "Index not given or not an interger: printing the whole array"
+            print("Index not given or not an interger: printing the whole array") #changed by me, earlier print had deprecated syntax
             array = []
             for i in range(carray_size):
                 array.append(carray[i])
